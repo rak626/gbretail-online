@@ -1,0 +1,102 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-delivery: var(--delivery);
+  --color-delivery-foreground: var(--delivery-foreground);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  /* GB Retail — Blinkit-inspired, light only */
+  --background: oklch(0.985 0.004 90);
+  --foreground: oklch(0.25 0.015 60);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.25 0.015 60);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.25 0.015 60);
+
+  /* Blinkit green ~ #0C831F */
+  --primary: oklch(0.545 0.177 145.2);
+  --primary-foreground: oklch(1 0 0);
+
+  --secondary: oklch(0.955 0.008 90);
+  --secondary-foreground: oklch(0.35 0.02 60);
+
+  --muted: oklch(0.955 0.008 90);
+  --muted-foreground: oklch(0.52 0.02 60);
+
+  /* Highlight yellow ~ #F8CB46 — hero banner only */
+  --accent: oklch(0.87 0.15 95);
+  --accent-foreground: oklch(0.28 0.03 60);
+
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(1 0 0);
+
+  --border: oklch(0.9 0.01 90);
+  --input: oklch(0.9 0.01 90);
+  --ring: oklch(0.545 0.177 145.2);
+
+  /* Brand aliases for explicit Blinkit-style usage */
+  --brand: oklch(0.545 0.177 145.2);
+  --brand-foreground: oklch(1 0 0);
+  --delivery: oklch(0.87 0.15 95);
+  --delivery-foreground: oklch(0.28 0.03 60);
+
+  --radius: 0.75rem;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+}
+
+@layer utilities {
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
