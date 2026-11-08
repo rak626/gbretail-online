@@ -14,6 +14,11 @@ export type OnlineProduct = {
   is_loose: boolean; price: number | null; rate_per_kg: number | null;
   onlinePrice: number | null; effectivePrice: number; imageUrl: string | null;
   stockQuantity: number;
+  barcode: string | null;
+  brand: string | null;
+  lowStockThreshold: number;
+  preset_weights: number[];
+  preset_prices: number[];
 };
 
 // Global online account — one person, every store. No shop attached.
@@ -112,10 +117,8 @@ export const storeApi = {
   logout: () => req<{ success: boolean }>("/api/store/logout", { method: "POST" }),
   me: () => req<{ user: OnlineUser }>("/api/store/me"),
   createOrder: (
-    // Pickup-only storefront: fulfilment is always "pickup". deliveryAddress kept
-    // optional only for backend API compatibility — never sent from UI.
     // shopId comes from the cart (global account orders from any shop).
-    body: { shopId: string; items: { productId: string; qty: number }[]; fulfilment: "pickup"; deliveryAddress?: string; deliveryPhone?: string; notes?: string },
+    body: { shopId: string; items: { productId: string; shopProductId?: string; qty: number }[]; fulfilment: "pickup" | "delivery"; deliveryAddress?: string; deliveryPhone?: string; notes?: string },
     idempotencyKey?: string
   ) =>
     req<{ order: OnlineOrder }>(`/api/store/orders`, {

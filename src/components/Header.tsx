@@ -128,7 +128,7 @@ export default function Header() {
           <Input
             value={searchValue}
             onChange={(e) => onSearch(e.target.value)}
-            placeholder={isShopPage ? 'Search "atta", "milk", "maggi"… ' : 'Search stores…'}
+            placeholder={isShopPage ? 'Search Products... ' : 'Search stores…'}
             className="h-10 bg-secondary/60 pl-9"
           />
         </div>

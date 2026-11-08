@@ -73,6 +73,7 @@ export default function ShopPage({ params }: { params: Promise<{ shopId: string 
     }
     add(shopId, {
       productId: p.id,
+      shopProductId: p.id,
       name: p.name,
       unitPrice: p.effectivePrice,
       qty: 1,

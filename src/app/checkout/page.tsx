@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, MapPin, Phone, ShoppingCart, Store } from "lucide-react";
+import { ArrowRight, Check, Circle, MapPin, Phone, ShoppingCart, Store, Truck } from "lucide-react";
 import { toast } from "sonner";
 import { storeApi, inr } from "@/lib/store-api";
 import { useCart, useSession } from "@/store/session";
@@ -22,6 +22,8 @@ export default function CheckoutPage() {
   const { customer, shop, setShop } = useSession();
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
+  const [fulfilment, setFulfilment] = useState<"pickup" | "delivery">("pickup");
+  const [deliveryAddress, setDeliveryAddress] = useState("");
   const [placing, setPlacing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,7 +43,12 @@ export default function CheckoutPage() {
 
   const shopInfo = shop && shopId && shop.id === shopId ? shop : null;
   const grossVal = gross();
-  const total = Math.round(grossVal * 100) / 100;
+  let deliveryFee = 0;
+  if (fulfilment === "delivery" && shopInfo) {
+    const freeAbove = shopInfo.freeDeliveryAbove != null ? shopInfo.freeDeliveryAbove : null;
+    deliveryFee = freeAbove != null && grossVal >= freeAbove ? 0 : shopInfo.deliveryFee;
+  }
+  const total = Math.round((grossVal + deliveryFee) * 100) / 100;
 
   async function place() {
     setError(null);
@@ -53,10 +60,20 @@ export default function CheckoutPage() {
       setError("Cart is empty");
       return;
     }
-    if (shopInfo && !shopInfo.pickupEnabled) {
+    if (shopInfo && fulfilment === "pickup" && !shopInfo.pickupEnabled) {
       const msg = "Pickup is not enabled for this shop yet";
       setError(msg);
       toast.error(msg);
+      return;
+    }
+    if (shopInfo && fulfilment === "delivery" && !shopInfo.deliveryEnabled) {
+      const msg = "Delivery is not enabled for this shop yet";
+      setError(msg);
+      toast.error(msg);
+      return;
+    }
+    if (fulfilment === "delivery" && !deliveryAddress.trim()) {
+      setError("Delivery address is required");
       return;
     }
     setPlacing(true);
@@ -67,11 +84,19 @@ export default function CheckoutPage() {
         setPlacing(false);
         return;
       }
+      // Delivery fee: free above freeDeliveryAbove, else shop's deliveryFee
+      let deliveryFee = 0;
+      if (fulfilment === "delivery" && shopInfo) {
+        const freeAbove = shopInfo.freeDeliveryAbove != null ? shopInfo.freeDeliveryAbove : null;
+        const grossVal = gross();
+        deliveryFee = freeAbove != null && grossVal >= freeAbove ? 0 : shopInfo.deliveryFee;
+      }
       const res = await storeApi.createOrder(
         {
           shopId,
-          items: lines.map((l) => ({ productId: l.productId, qty: l.qty })),
-          fulfilment: "pickup",
+          items: lines.map((l) => ({ productId: l.productId, shopProductId: l.shopProductId, qty: l.qty })),
+          fulfilment,
+          deliveryAddress: fulfilment === "delivery" ? deliveryAddress.trim() : undefined,
           deliveryPhone: phone.trim() || undefined,
           notes: notes.trim() || undefined,
         },
@@ -111,7 +136,15 @@ export default function CheckoutPage() {
         <Badge variant="secondary" className="gap-1">
           <ShoppingCart className="h-3 w-3" /> {lines.reduce((a, l) => a + l.qty, 0)} items
         </Badge>
-        <Badge variant="delivery">Pickup · Pay in store</Badge>
+        {fulfilment === "delivery" ? (
+          <Badge variant="delivery" className="flex items-center gap-1">
+            <Truck className="h-3 w-3" /> Delivery · Pay in store
+          </Badge>
+        ) : (
+          <Badge variant="secondary" className="flex items-center gap-1">
+            <MapPin className="h-3 w-3" /> Pickup · Pay in store
+          </Badge>
+        )}
         {shopInfo && (
           <Link
             href={`/s/${shopInfo.id}`}
@@ -121,6 +154,45 @@ export default function CheckoutPage() {
           </Link>
         )}
       </div>
+
+      {/* Fulfilment method */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">How do you want to receive your order?</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 pt-0 p-3">
+          <div className="grid grid-cols-2 gap-3">
+            <Button
+              onClick={() => setFulfilment("pickup")}
+              className={`w-full justify-start py-3 text-left border ${fulfilment === "pickup" ? "bg-primary text-primary-foreground" : "bg-muted/50 hover:bg-primary/10 border-border"}`}
+              disabled={shopInfo ? !shopInfo.pickupEnabled : true}
+            >
+              <div className="flex items-center gap-2">
+                <span className="w-4 h-4 shrink-0">
+                  {fulfilment === "pickup" ? <Check className="w-3 h-3" /> : <Circle className="w-3 h-3 text-muted-foreground" />}
+                </span>
+                <span className="font-semibold">Pickup</span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">Collect at the counter</p>
+            </Button>
+            <Button
+              onClick={() => setFulfilment("delivery")}
+              className={`w-full justify-start py-3 text-left border ${fulfilment === "delivery" ? "bg-primary text-primary-foreground" : "bg-muted/50 hover:bg-primary/10 border-border"}`}
+              disabled={shopInfo ? !shopInfo.deliveryEnabled : true}
+            >
+              <div className="flex items-center gap-2">
+                <span className="w-4 h-4 shrink-0">
+                  {fulfilment === "delivery" ? <Check className="w-3 h-3" /> : <Circle className="w-3 h-3 text-muted-foreground" />}
+                </span>
+                <span className="font-semibold">Delivery</span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Delivered to your address · {shopInfo ? `₹${shopInfo.deliveryFee.toFixed(2)} delivery fee${shopInfo.freeDeliveryAbove != null ? ` (free above ₹${shopInfo.freeDeliveryAbove.toFixed(2)})` : ""}` : ""}
+              </p>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {!customer && (
         <Card className="border-accent bg-accent/20">
@@ -159,14 +231,14 @@ export default function CheckoutPage() {
             </CardContent>
           </Card>
 
-          {/* Pickup details */}
+          {/* Pickup / Delivery details */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Pickup details</CardTitle>
+              <CardTitle className="text-base">{fulfilment === "delivery" ? "Delivery details" : "Pickup details"}</CardTitle>
               <CardDescription>
-                {shopInfo
-                  ? <>You&apos;ll pick up from <span className="font-bold text-foreground">{shopInfo.name}</span>{shopInfo.address ? ` · ${shopInfo.address}` : ""}. We&apos;ll use your phone to tell you when it&apos;s ready.</>
-                  : "We'll use your phone to tell you when your order is ready."}
+                {fulfilment === "delivery"
+                  ? "We&apos;ll deliver to your address. Use your phone so the shop can reach you on arrival."
+                  : <>You&apos;ll pick up from <span className="font-bold text-foreground">{shopInfo?.name}</span>{shopInfo?.address ? ` · ${shopInfo?.address}` : ""}. We&apos;ll use your phone to tell you when it&apos;s ready.</>}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 pt-0">
@@ -194,6 +266,12 @@ export default function CheckoutPage() {
                   <Input id="co-notes" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. call on arrival" />
                 </div>
               </div>
+              {fulfilment === "delivery" && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="co-address">Delivery address <span className="font-normal text-muted-foreground">(required)</span></Label>
+                  <Input id="co-address" value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} placeholder="House, street, area, pincode" />
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -211,12 +289,14 @@ export default function CheckoutPage() {
             {shopInfo && <CardDescription>{shopInfo.name} · Pay in store</CardDescription>}
           </CardHeader>
           <CardContent className="space-y-4 pt-0">
-            <BillSummary gross={grossVal} total={total} />
+            <BillSummary gross={grossVal} total={total} deliveryFee={deliveryFee} fulfilment={fulfilment} />
             <Separator />
             <Button onClick={place} disabled={placing} size="lg" className="w-full">
-              {placing ? "Placing order…" : customer ? <>Place pickup order · {inr(total)} <ArrowRight className="h-4 w-4" /></> : "Login & place order"}
+              {placing ? "Placing order…" : customer ? <>Place {fulfilment === "delivery" ? "delivery" : "pickup"} order · {inr(total)} <ArrowRight className="h-4 w-4" /></> : "Login & place order"}
             </Button>
-            <p className="text-center text-xs text-muted-foreground">We pack it, you pick it up. Pay UPI or cash at the counter.</p>
+            <p className="text-center text-xs text-muted-foreground">
+              {fulfilment === "delivery" ? "We&apos;ll deliver to your address. Pay UPI or cash on arrival." : "We pack it, you pick it up. Pay UPI or cash at the counter."}
+            </p>
           </CardContent>
         </Card>
       </div>

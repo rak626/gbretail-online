@@ -31,7 +31,7 @@ export const useSession = create<SessionState>()((set) => ({
   },
 }));
 
-export type CartLine = { productId: string; name: string; unitPrice: number; qty: number; imageUrl: string | null };
+export type CartLine = { productId: string; shopProductId?: string; name: string; unitPrice: number; qty: number; imageUrl: string | null };
 
 type CartState = {
   shopId: string | null;
